@@ -19,3 +19,4 @@
 *.config
 .vscode/
 *.json  
+*.bak
