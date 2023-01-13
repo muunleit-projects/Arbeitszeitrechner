@@ -80,7 +80,7 @@ func (z zeitpunkt) Tabelle() {
 	}
 }
 
-// string is the method for the fmt.Stringer-interface
+// string is ....
 func (z zeitpunkt) string() string {
 	var rest string
 	if z.name != beginn {
