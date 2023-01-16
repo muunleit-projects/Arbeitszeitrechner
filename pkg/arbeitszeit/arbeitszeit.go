@@ -2,6 +2,7 @@ package arbeitszeit
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -12,8 +13,9 @@ const (
 )
 
 const (
-	formatTabelle = "%-21s  %s | %8s\n"
-	formatZeit    = "15:04 | Mon 02.01.2006"
+	formatTabelle = "%-20s   %s"
+	formatZeit    = "15:04  Mon 02.01.2006"
+	formatRest    = "   %8s"
 )
 
 type zeit struct {
@@ -36,7 +38,7 @@ var zeiten map[int]zeitraum = map[int]zeitraum{
 		dauer: time.Hour*8 + time.Minute*18,
 	},
 	max: {
-		name:  "maximale Arbeitszeit:",
+		name:  "maximale Arbeitszeit",
 		dauer: time.Hour*10 + time.Minute*45,
 	},
 }
@@ -72,22 +74,29 @@ func SetBeginn(s string) (zeit, error) {
 
 // Tabelle returns the list of times for the workday
 func (z zeit) Tabelle() string {
-	var s string
+	var s strings.Builder
 	n := time.Now()
 
 	for i := 0; i < len(zeiten); i++ {
 		zp := z.t.Add(zeiten[i].dauer)
 
-		var until string
-		if zp.After(n) {
-			until = time.Until(zp).Round(time.Minute).String()
-		}
-
-		s += fmt.Sprintf(
+		fmt.Fprintf(
+			&s,
 			formatTabelle,
 			zeiten[i].name,
 			zp.Format(formatZeit),
-			until)
+		)
+
+		if zp.After(n) {
+			fmt.Fprintf(
+				&s,
+				formatRest,
+				time.Until(zp).Round(time.Minute).String(),
+			)
+		}
+
+		fmt.Fprintln(&s)
 	}
-	return s
+
+	return s.String()
 }

@@ -23,5 +23,7 @@ func main() {
 
 	fmt.Print(b.Tabelle())
 
-	fmt.Scanln()
+	if arg == "" {
+		fmt.Scanln()
+	}
 }
