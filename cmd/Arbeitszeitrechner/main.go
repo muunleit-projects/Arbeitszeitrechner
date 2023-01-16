@@ -23,5 +23,5 @@ func main() {
 
 	b.Tabelle()
 
-	// fmt.Scanln()
+	fmt.Scanln()
 }

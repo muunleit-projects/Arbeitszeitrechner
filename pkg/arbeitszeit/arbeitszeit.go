@@ -25,6 +25,7 @@ type zeitraum struct {
 	dauer time.Duration
 }
 
+// zeiten are the names and durations times for the output
 var zeiten map[int]zeitraum = map[int]zeitraum{
 	beginn: {
 		name:  "Beginn",
@@ -40,6 +41,7 @@ var zeiten map[int]zeitraum = map[int]zeitraum{
 	},
 }
 
+// SetBeginn sets the check-in time for the workday
 func SetBeginn(s string) (zeit, error) {
 	if s == "" {
 		fmt.Printf("Eingestempelt um [hh:mm]: ")
@@ -68,22 +70,22 @@ func SetBeginn(s string) (zeit, error) {
 	return z, nil
 }
 
+// Tabelle outputs the list of times for the workday
 func (z zeit) Tabelle() {
 	n := time.Now()
 
 	for i := 0; i < len(zeiten); i++ {
 		zp := z.t.Add(zeiten[i].dauer)
-		var u string
 
+		var until string
 		if zp.After(n) {
-			u = time.Until(zp).Round(time.Minute).String()
+			until = time.Until(zp).Round(time.Minute).String()
 		}
 
 		fmt.Printf(
 			formatTabelle,
 			zeiten[i].name,
 			zp.Format(formatZeit),
-			u)
-
+			until)
 	}
 }
