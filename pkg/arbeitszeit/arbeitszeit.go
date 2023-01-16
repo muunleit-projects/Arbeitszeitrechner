@@ -5,11 +5,19 @@ import (
 	"time"
 )
 
-const beginn = "Beginn:"
+const (
+	beginn = iota
+	standard
+	max
+)
 
-type zeitpunkt struct {
-	name string
-	zeit time.Time
+const (
+	formatTabelle = "%-21s  %s | %8s\n"
+	formatZeit    = "15:04 | Mon 02.01.2006"
+)
+
+type zeit struct {
+	t time.Time
 }
 
 type zeitraum struct {
@@ -17,81 +25,67 @@ type zeitraum struct {
 	dauer time.Duration
 }
 
-var abglZeiten []zeitraum = []zeitraum{
-	{
-		name:  "Standard-Tag:",
+// zeiten are the names and durations times for the output
+var zeiten map[int]zeitraum = map[int]zeitraum{
+	beginn: {
+		name:  "Beginn",
+		dauer: 0,
+	},
+	standard: {
+		name:  "Standard-Tag",
 		dauer: time.Hour*8 + time.Minute*18,
 	},
-	{
+	max: {
 		name:  "maximale Arbeitszeit:",
 		dauer: time.Hour*10 + time.Minute*45,
 	},
 }
 
-// New is a wrapper for SetBeginn
-func New(s string) (zeitpunkt, error) {
-	z := zeitpunkt{name: beginn}
-	if err := z.SetBeginn(s); err != nil {
-		return zeitpunkt{}, err
-	}
-	return z, nil
-}
-
-// SetBeginn returns a new zeit-object, filled up from string
-// or user-input, if string is empty
-func (z *zeitpunkt) SetBeginn(s string) error {
+// SetBeginn sets the check-in time for the workday
+func SetBeginn(s string) (zeit, error) {
 	if s == "" {
 		fmt.Printf("Eingestempelt um [hh:mm]: ")
 		if _, err := fmt.Scanln(&s); err != nil {
-			return err
+			return zeit{}, err
 		}
 		fmt.Println()
 	}
 
 	userZeit, err := time.Parse("15:04", s)
 	if err != nil {
-		return err
+		return zeit{}, err
 	}
 
 	n := time.Now()
 
-	z.zeit = time.Date(
+	z := zeit{time.Date(
 		n.Year(), n.Month(), n.Day(),
 		userZeit.Hour(), userZeit.Minute(),
-		0, 0, time.Local)
+		0, 0, time.Local)}
 
-	if z.zeit.After(n) {
-		z.zeit = z.zeit.AddDate(0, 0, -1)
+	if z.t.After(n) {
+		z.t = z.t.AddDate(0, 0, -1)
 	}
 
-	return nil
+	return z, nil
 }
 
-// Tabelle prints the times as a table
-func (z zeitpunkt) Tabelle() {
-	fmt.Println(z.string())
+// Tabelle outputs the list of times for the workday
+func (z zeit) Tabelle() {
+	n := time.Now()
 
-	for _, d := range abglZeiten {
-		s := zeitpunkt{
-			zeit: z.zeit.Add(d.dauer),
-			name: d.name,
+	for i := 0; i < len(zeiten); i++ {
+		zp := z.t.Add(zeiten[i].dauer)
+
+		var until string
+		if zp.After(n) {
+			until = time.Until(zp).Round(time.Minute).String()
 		}
-		fmt.Println(s.string())
+
+		fmt.Printf(
+			formatTabelle,
+			zeiten[i].name,
+			zp.Format(formatZeit),
+			until)
 	}
-}
-
-// string is ....
-func (z zeitpunkt) string() string {
-	var rest string
-	if z.name != beginn {
-		rest = time.Until(z.zeit).Round(time.Minute).String()
-	}
-
-	s := fmt.Sprintf(
-		"%-21s  %s | %8s",
-		z.name,
-		z.zeit.Format("15:04 | Mon 02.01.2006"),
-		rest)
-
-	return s
 }
