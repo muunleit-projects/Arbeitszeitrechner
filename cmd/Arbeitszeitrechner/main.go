@@ -21,7 +21,7 @@ func main() {
 
 	}
 
-	b.Tabelle()
+	fmt.Print(b.Tabelle())
 
 	fmt.Scanln()
 }

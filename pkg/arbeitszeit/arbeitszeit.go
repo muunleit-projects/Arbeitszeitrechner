@@ -70,8 +70,9 @@ func SetBeginn(s string) (zeit, error) {
 	return z, nil
 }
 
-// Tabelle outputs the list of times for the workday
-func (z zeit) Tabelle() {
+// Tabelle returns the list of times for the workday
+func (z zeit) Tabelle() string {
+	var s string
 	n := time.Now()
 
 	for i := 0; i < len(zeiten); i++ {
@@ -82,10 +83,11 @@ func (z zeit) Tabelle() {
 			until = time.Until(zp).Round(time.Minute).String()
 		}
 
-		fmt.Printf(
+		s += fmt.Sprintf(
 			formatTabelle,
 			zeiten[i].name,
 			zp.Format(formatZeit),
 			until)
 	}
+	return s
 }
