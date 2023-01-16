@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	beginn = iota
+	beginn int = iota
 	standard
 	max
 )
