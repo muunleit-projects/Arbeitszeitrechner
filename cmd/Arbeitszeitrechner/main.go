@@ -17,9 +17,9 @@ func main() {
 	b, err := arbeitszeit.SetBeginn(arg)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return
+	} else {
+		b.Tabelle()
 	}
-	b.Tabelle()
 
 	if arg == "" {
 		fmt.Scanln()
