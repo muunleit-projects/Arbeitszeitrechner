@@ -2,7 +2,6 @@ package arbeitszeit
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -13,9 +12,9 @@ const (
 )
 
 const (
-	formatTabelle = "%-20s   %s"
-	formatZeit    = "15:04  Mon 02.01.2006"
-	formatRest    = "   %8s"
+	formName     = "%-23s"
+	formZeit     = "15:04  Mon 02.01.2006"
+	formRestzeit = "%11s"
 )
 
 type zeit struct {
@@ -73,30 +72,19 @@ func SetBeginn(s string) (zeit, error) {
 }
 
 // Tabelle returns the list of times for the workday
-func (z zeit) Tabelle() string {
-	var s strings.Builder
+func (z zeit) Tabelle() {
 	n := time.Now()
 
 	for i := 0; i < len(zeiten); i++ {
 		zp := z.t.Add(zeiten[i].dauer)
 
-		fmt.Fprintf(
-			&s,
-			formatTabelle,
-			zeiten[i].name,
-			zp.Format(formatZeit),
-		)
+		s := fmt.Sprintf(formName, zeiten[i].name)
+		s += zp.Format(formZeit)
 
 		if zp.After(n) {
-			fmt.Fprintf(
-				&s,
-				formatRest,
-				time.Until(zp).Round(time.Minute).String(),
-			)
+			s += fmt.Sprintf(formRestzeit, time.Until(zp).Round(time.Minute))
 		}
 
-		fmt.Fprintln(&s)
+		fmt.Println(s)
 	}
-
-	return s.String()
 }

@@ -21,7 +21,7 @@ func main() {
 
 	}
 
-	fmt.Print(b.Tabelle())
+	b.Tabelle()
 
 	if arg == "" {
 		fmt.Scanln()
