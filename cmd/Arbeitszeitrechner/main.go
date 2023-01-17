@@ -20,7 +20,6 @@ func main() {
 		return
 
 	}
-
 	b.Tabelle()
 
 	if arg == "" {
