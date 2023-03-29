@@ -1,5 +1,0 @@
-Now()
-func (t Time) Date() (year int, month Month, day int)
-
-benutzerZeit
-func (t Time) Clock() (hour, min, sec int)
