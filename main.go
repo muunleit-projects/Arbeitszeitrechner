@@ -26,7 +26,7 @@ type zeitraum struct {
 }
 
 // zeiten are the names and durations of times for the output
-var zeiten map[int]zeitraum = map[int]zeitraum{
+var zeiten = map[int]zeitraum{
 	beginn: {
 		name:  "Beginn",
 		dauer: 0,
@@ -42,6 +42,9 @@ var zeiten map[int]zeitraum = map[int]zeitraum{
 }
 
 func main() {
+	log.SetPrefix("Error: ")
+	log.SetFlags(0)
+
 	var anmeldung string
 
 	if len(os.Args) > 1 {
@@ -55,21 +58,20 @@ func main() {
 		fmt.Printf("Angemeldet um [hh:mm]: ")
 		_, err := fmt.Scanln(&anmeldung)
 		if err != nil {
-			log.Printf("Eingabefehler: %v\n", err)
+			log.Println("Benutzereingabe:", err)
 			return
 		}
 	}
 
-	now := time.Now()
-
 	// set time from string
 	anmeldeZP, err := time.Parse("15:04", anmeldung)
 	if err != nil {
-		log.Printf("Zeit-Parsing-Fehler: %v\n", err)
+		log.Println("Anmeldezeitpunkt:", err)
 		return
 	}
 
 	// set date to current date
+	now := time.Now()
 	anmeldeZP = time.Date(
 		now.Year(), now.Month(), now.Day(),
 		anmeldeZP.Hour(), anmeldeZP.Minute(),
@@ -80,14 +82,13 @@ func main() {
 		anmeldeZP = anmeldeZP.AddDate(0, 0, -1)
 	}
 
-	// print table of times and durations until they are reached
+	// print table of times and durations until the times are reached
 	var sb strings.Builder
 
 	for i := 0; i < len(zeiten); i++ {
+		fmt.Fprintf(&sb, formatName, zeiten[i].name)
 
 		zp := anmeldeZP.Add(zeiten[i].dauer)
-
-		fmt.Fprintf(&sb, formatName, zeiten[i].name)
 		sb.WriteString(zp.Format(formatZeit))
 		if zp.After(now) {
 			fmt.Fprintf(&sb, formatRestzeit, time.Until(zp).Round(time.Minute))
