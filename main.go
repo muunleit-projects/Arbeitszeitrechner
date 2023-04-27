@@ -11,7 +11,7 @@ import (
 const (
 	formatName     = "%-23s"
 	formatZeit     = "15:04  Mon 02.01.2006"
-	formatRestzeit = "%11s\n"
+	formatRestzeit = "%11s"
 )
 
 const (
@@ -56,8 +56,7 @@ func main() {
 		defer fmt.Scanln()
 
 		fmt.Printf("Angemeldet um [hh:mm]: ")
-		_, err := fmt.Scanln(&anmeldung)
-		if err != nil {
+		if _, err := fmt.Scanln(&anmeldung); err != nil {
 			log.Println("Benutzereingabe:", err)
 			return
 		}
@@ -90,11 +89,10 @@ func main() {
 
 		zp := anmeldeZP.Add(zeiten[i].dauer)
 		sb.WriteString(zp.Format(formatZeit))
-		if zp.Before(now) {
-			sb.WriteRune('\n')
-			continue
+		if zp.After(now) {
+			fmt.Fprintf(&sb, formatRestzeit, time.Until(zp).Round(time.Minute))
 		}
-		fmt.Fprintf(&sb, formatRestzeit, time.Until(zp).Round(time.Minute))
+		sb.WriteRune('\n')
 	}
 	fmt.Print(sb.String())
 }
