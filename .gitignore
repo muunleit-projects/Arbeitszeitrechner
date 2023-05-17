@@ -15,7 +15,6 @@
 # vendor/
 
 # others
-*_test.go
 *.config
 .vscode/
 *.json  
