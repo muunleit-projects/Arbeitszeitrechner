@@ -7,17 +7,19 @@ import (
 	"time"
 )
 
-// string formats for the output
+// string formats for outputting Zeitpunkt objects
 const (
-	formatName     = "%-23s"
-	formatZeit     = "15:04  Mon 02.01.2006"
-	formatRestzeit = "%11s"
+	nameFormat     = "%-23s"
+	zeitFormat     = "15:04  Mon 02.01.2006"
+	restzeitFormat = "%11s"
 )
 
+// Zeitpunkt is a struct that represents a specific moment in time.
 type Zeitpunkt struct {
-	t time.Time
+	time time.Time
 }
 
+// zeitraum represents a period of time with a name and duration.
 type zeitraum struct {
 	name  string
 	dauer time.Duration
@@ -29,7 +31,6 @@ const (
 	max
 )
 
-// zeiten are the names and durations of times for the output
 var zeiten = map[int]zeitraum{
 	beginn: {
 		name:  "Beginn",
@@ -45,57 +46,61 @@ var zeiten = map[int]zeitraum{
 	},
 }
 
-// SetBeginn sets the  according to the
-// beginn-parameter and the current date
+// SetBeginn sets the beginning time for Zeitpunkt. It takes a string argument
+// `beginn` in the format "15:04". If `beginn` is not in the correct format, it
+// returns an error. `SetBeginn` then creates a new `time.Time` instance based
+// on the current date and `beginn`. If `beginn` is after the current time, it
+// sets the beginning time to the previous day. Finally, it sets `zp.time` to
+// the computed beginning time and returns nil.
 func (zp *Zeitpunkt) SetBeginn(beginn string) (err error) {
-	// set time from string
-	zp.t, err = time.Parse("15:04", beginn)
+	// Parse `beginn` into a time.Time object
+	startTime, err := time.Parse("15:04", beginn)
 	if err != nil {
 		return err
 	}
-	// set date to current date
-	now := time.Now()
-	zp.t = time.Date(
-		now.Year(), now.Month(), now.Day(),
-		zp.t.Hour(), zp.t.Minute(),
-		0, 0, time.Local)
 
-	// correct date to yesterday if workday would start after "now" otherwise
-	if zp.t.After(now) {
-		zp.t = zp.t.AddDate(0, 0, -1)
+	// Create a new time.Time object with the current date and `startTime` as the time
+	currentTime := time.Now()
+	startTime = time.Date(
+		currentTime.Year(),
+		currentTime.Month(),
+		currentTime.Day(),
+		startTime.Hour(),
+		startTime.Minute(),
+		0,
+		0,
+		time.Local)
+
+	// If the computed start time is after the current time, set it to the previous day
+	if startTime.After(currentTime) {
+		startTime = startTime.AddDate(0, 0, -1)
 	}
+
+	zp.time = startTime
 	return nil
 }
 
 // Beginn returns the starting-time of the workday
 func (zp Zeitpunkt) Beginn() string {
-	return zp.t.Format(formatZeit)
+	return zp.time.Format(zeitFormat)
 }
 
-// Tabelle prints a table of times and durations until the times are reached to
-// io.Writer
-func (zp Zeitpunkt) Tabelle(w io.Writer) error {
-	var sb strings.Builder
+// Tabelle prints a table of time durations, their end times, and the time remaining until the end time.
+// It writes the table to the given io.Writer.
+func (zp Zeitpunkt) Tabelle(w io.Writer) {
+	var table strings.Builder
 	now := time.Now()
 
 	for i := 0; i < len(zeiten); i++ {
-		if _, err := fmt.Fprintf(&sb, formatName, zeiten[i].name); err != nil {
-			return fmt.Errorf("add to strings.Builder: %w", err)
-		}
+		fmt.Fprintf(&table, nameFormat, zeiten[i].name)
 
-		z := zp.t.Add(zeiten[i].dauer)
-		if _, err := sb.WriteString(z.Format(formatZeit)); err != nil {
-			return fmt.Errorf("add to strings.Builder: %w", err)
+		end := zp.time.Add(zeiten[i].dauer)
+		table.WriteString(end.Format(zeitFormat))
+
+		if end.After(now) {
+			fmt.Fprintf(&table, restzeitFormat, time.Until(end).Round(time.Minute))
 		}
-		if z.After(now) {
-			if _, err := fmt.Fprintf(&sb, formatRestzeit, time.Until(z).Round(time.Minute)); err != nil {
-				return fmt.Errorf("add to strings.Builder: %w", err)
-			}
-		}
-		if _, err := sb.WriteRune('\n'); err != nil {
-			return fmt.Errorf("add to strings.Builder: %w", err)
-		}
+		table.WriteRune('\n')
 	}
-	fmt.Fprint(w, sb.String())
-	return nil
+	fmt.Fprint(w, table.String())
 }
