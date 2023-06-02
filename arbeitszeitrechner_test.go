@@ -2,46 +2,27 @@ package arbeitszeitrechner_test
 
 import (
 	"bytes"
-	"strings"
 	"testing"
+	"time"
 
-	az "github.com/muunleit-projects/Arbeitszeitrechner"
+	azr "github.com/muunleit-projects/Arbeitszeitrechner"
 )
 
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	var zp az.Zeitpunkt
-	err := zp.SetBeginn("6:14")
-	if err != nil {
-		t.Fatal(err)
-	}
+	fakeOutput := &bytes.Buffer{}
 
-	want := "06:14"
-	got := zp.Beginn()
-	if !strings.HasPrefix(got, want) {
-		t.Errorf("Beginn: want %q, got %q", want, got)
-	}
-}
+	az := azr.NewArbeitszeitrechner()
+	az.SetCurrentTime(time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local))
+	az.SetOutput(fakeOutput)
+	az.Tabelle("8:12")
 
-func TestOutputTableToWriter(t *testing.T) {
-	t.Parallel()
-
-	var zp az.Zeitpunkt
-	fakeTerminal := &bytes.Buffer{}
-	err := zp.SetBeginn("7:45")
-	if err != nil {
-		t.Fatal(err)
-	}
-	zp.Tabelle(fakeTerminal)
-
-	wantBeginn := "7:45  "
-	wantStandard := "16:03  "
-	wantMax := "18:30  "
-	got := fakeTerminal.String()
-	if !(strings.Contains(got, wantBeginn) &&
-		strings.Contains(got, wantStandard) &&
-		strings.Contains(got, wantMax)) {
-		t.Errorf(got)
+	want := "Beginn                 08:12  Thu 23.07.2020" + "\n" +
+		"Standard-Tag           16:30  Thu 23.07.2020    3h24m0s" + "\n" +
+		"maximale Arbeitszeit   18:57  Thu 23.07.2020    5h51m0s" + "\n"
+	got := fakeOutput.String()
+	if want != got {
+		t.Errorf("Tabelle: \nwant \n%v got \n%v", want, got)
 	}
 }
