@@ -1,9 +1,7 @@
 package arbeitszeitrechner_test
 
 import (
-	// "bytes"
-	// "strings"
-	"strings"
+	"bytes"
 	"testing"
 	"time"
 
@@ -13,41 +11,18 @@ import (
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	fakeInput := strings.NewReader("6:14")
+	fakeOutput := &bytes.Buffer{}
 
-	zp := azr.New()
-	zp.SetCurrentTime(time.Date(2020, 11, 7, 13, 35, 0, 0, time.Local))
-	zp.SetInput(fakeInput)
-	err := zp.SetBeginn()
-	if err != nil {
-		t.Fatal(err)
-	}
+	az := azr.NewArbeitszeitrechner()
+	az.SetCurrentTime(time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local))
+	az.SetOutput(fakeOutput)
+	az.Tabelle("8:12")
 
-	want := time.Date(2020, 11, 7, 6, 14, 0, 0, time.Local)
-	got := zp.Beginn()
+	want := "Beginn                 08:12  Thu 23.07.2020" + "\n" +
+		"Standard-Tag           16:30  Thu 23.07.2020    3h24m0s" + "\n" +
+		"maximale Arbeitszeit   18:57  Thu 23.07.2020    5h51m0s" + "\n"
+	got := fakeOutput.String()
 	if want != got {
-		t.Errorf("Beginn: want %v, got %v", want, got)
+		t.Errorf("Tabelle: \nwant \n%v got \n%v", want, got)
 	}
 }
-
-// func TestOutputTableToWriter(t *testing.T) {
-// 	t.Parallel()
-
-// 	var zp azr.Zeitpunkt
-// 	fakeTerminal := &bytes.Buffer{}
-// 	err := zp.SetBeginn("7:45")
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	zp.Tabelle(fakeTerminal)
-
-// 	wantBeginn := "7:45  "
-// 	wantStandard := "16:03  "
-// 	wantMax := "18:30  "
-// 	got := fakeTerminal.String()
-// 	if !(strings.Contains(got, wantBeginn) &&
-// 		strings.Contains(got, wantStandard) &&
-// 		strings.Contains(got, wantMax)) {
-// 		t.Errorf(got)
-// 	}
-// }
