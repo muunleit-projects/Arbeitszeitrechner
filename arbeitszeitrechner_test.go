@@ -13,9 +13,11 @@ func TestNew(t *testing.T) {
 
 	fakeOutput := &bytes.Buffer{}
 
-	az := azr.NewArbeitszeitrechner()
-	az.SetCurrentTime(time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local))
-	az.SetOutput(fakeOutput)
+	az := azr.Zeitpunkt{
+		CurrentTime: time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local),
+		Output:      fakeOutput,
+	}
+
 	az.Tabelle("8:12")
 
 	want := "Beginn                 08:12  Thu 23.07.2020" + "\n" +
