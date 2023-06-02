@@ -21,25 +21,10 @@ type zeitraum struct {
 	duration time.Duration
 }
 
-const (
-	beginnWorkday int = iota
-	standardWorkday
-	maximalWorkday
-)
-
-var zeiten = map[int]zeitraum{
-	beginnWorkday: {
-		name:     "Beginn",
-		duration: 0,
-	},
-	standardWorkday: {
-		name:     "Standard-Tag",
-		duration: time.Hour*8 + time.Minute*18,
-	},
-	maximalWorkday: {
-		name:     "maximale Arbeitszeit",
-		duration: time.Hour*10 + time.Minute*45,
-	},
+var zeitenräume = []zeitraum{
+	{name: "Beginn", duration: 0},
+	{name: "Standard-Tag", duration: time.Hour*8 + time.Minute*18},
+	{name: "maximale Arbeitszeit", duration: time.Hour*10 + time.Minute*45},
 }
 
 // zeitpunkt is a struct that represents a specific moment in time.
@@ -50,7 +35,7 @@ type zeitpunkt struct {
 	output      io.Writer
 }
 
-func New() *zeitpunkt {
+func NewArbeitszeitrechner() *zeitpunkt {
 	return &zeitpunkt{
 		currentTime: time.Now(),
 		output:      os.Stdout,
@@ -70,18 +55,12 @@ func (z *zeitpunkt) SetOutput(w io.Writer) {
 	z.output = w
 }
 
-// SetBeginn sets the beginning time. It takes a string from an io.Reader and
+// setBeginn sets the beginning time. It takes a string from an io.Reader and
 // parses it in the format "15:04" and sets the date to the current date. If the
 // beginning time would be in the the future, it reduces the date by one day.
-func (z *zeitpunkt) SetBeginn() error {
-	// the string ist needed for time.Parse()
-	var checkInString string
-	if _, err := fmt.Fscanln(z.input, &checkInString); err != nil {
-		return err
-	}
-
+func (z *zeitpunkt) setBeginn(checkin string) error {
 	// Parse `checkInString` into a time.Time object
-	checkInTime, err := time.Parse("15:04", checkInString)
+	checkinTime, err := time.Parse("15:04", checkin)
 	if err != nil {
 		return err
 	}
@@ -92,8 +71,8 @@ func (z *zeitpunkt) SetBeginn() error {
 		z.currentTime.Year(),
 		z.currentTime.Month(),
 		z.currentTime.Day(),
-		checkInTime.Hour(),
-		checkInTime.Minute(),
+		checkinTime.Hour(),
+		checkinTime.Minute(),
 		0,
 		0,
 		time.Local)
@@ -108,26 +87,37 @@ func (z *zeitpunkt) SetBeginn() error {
 }
 
 // Beginn returns the starting-time of the workday
-func (zp zeitpunkt) Beginn() time.Time {
-	return zp.beginn
+/* func (zp zeitpunkt) Beginn() time.Time {
+return zp.beginn
+} */
+
+func (z *zeitpunkt) Tabelle(checkin string) error {
+	if err := z.setBeginn(checkin); err != nil {
+		return err
+	}
+
+	var table strings.Builder
+
+	// for i := 0; i < len(zeiten); i++ {
+	for _, zr := range zeitenräume {
+		fmt.Fprintf(&table, nameFormat, zr.name)
+
+		end := z.beginn.Add(zr.duration)
+		table.WriteString(end.Format(timeFormat))
+
+		if end.After(z.currentTime) {
+			fmt.Fprintf(&table,
+				remainingTimeFormat,
+				end.Sub(z.currentTime).Round(time.Minute))
+		}
+		table.WriteRune('\n')
+	}
+	fmt.Fprint(z.output, table.String())
+	return nil
 }
 
 // Tabelle prints a table of time durations, their end times, and the time remaining until the end time.
 // It writes the table to the given io.Writer.
-func (zp zeitpunkt) Tabelle(w io.Writer) {
-	var table strings.Builder
-	now := time.Now()
-
-	for i := 0; i < len(zeiten); i++ {
-		fmt.Fprintf(&table, nameFormat, zeiten[i].name)
-
-		end := zp.beginn.Add(zeiten[i].duration)
-		table.WriteString(end.Format(timeFormat))
-
-		if end.After(now) {
-			fmt.Fprintf(&table, remainingTimeFormat, time.Until(end).Round(time.Minute))
-		}
-		table.WriteRune('\n')
-	}
-	fmt.Fprint(w, table.String())
+func Tabelle(checkin string) error {
+	return NewArbeitszeitrechner().Tabelle(checkin)
 }
