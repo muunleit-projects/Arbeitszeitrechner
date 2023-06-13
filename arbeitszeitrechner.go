@@ -23,9 +23,18 @@ type zeitraum struct {
 }
 
 var zeitenräume = []zeitraum{
-	{name: "Beginn", duration: 0},
-	{name: "Standard-Tag", duration: time.Hour*8 + time.Minute*18},
-	{name: "maximale Arbeitszeit", duration: time.Hour*10 + time.Minute*45},
+	{
+		name:     "Beginn",
+		duration: 0,
+	},
+	{
+		name:     "Standard-Tag",
+		duration: time.Hour*8 + time.Minute*18,
+	},
+	{
+		name:     "maximale Arbeitszeit",
+		duration: time.Hour*10 + time.Minute*45,
+	},
 }
 
 // zeitpunkt is a struct that represents a specific moment in time.
@@ -37,6 +46,8 @@ type zeitpunkt struct {
 
 type option func(*zeitpunkt) error
 
+// NewArbeitszeitrechner builds a new Arbeitszeitrechner-object with given
+// options or setting it to standard-value if the options are omitted
 func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
 	z := zeitpunkt{
 		now:    time.Now(),
@@ -52,6 +63,8 @@ func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
 	return z, nil
 }
 
+// Now sets the current time of a new Arbeitszeitrechner-object to the given
+// time
 func Now(t time.Time) option {
 	return func(z *zeitpunkt) error {
 		z.now = t
@@ -59,6 +72,7 @@ func Now(t time.Time) option {
 	}
 }
 
+// Output sets the output of a new Arbeitszeitrechner-object to the given output
 func Output(output io.Writer) option {
 	return func(z *zeitpunkt) error {
 		if output == nil {
@@ -69,7 +83,7 @@ func Output(output io.Writer) option {
 	}
 }
 
-// setBeginn sets the beginning time. It parses  a string in the format "15:04"
+// setBeginn sets the beginning time. It parses a string in the format "15:04"
 // and sets the date to the current date. If the beginning time would be in the
 // the future, it reduces the date by one day.
 func (z *zeitpunkt) setBeginn(checkin string) error {
@@ -78,7 +92,7 @@ func (z *zeitpunkt) setBeginn(checkin string) error {
 		return err
 	}
 
-	z.beginn = time.Date(
+	beginn := time.Date(
 		z.now.Year(),
 		z.now.Month(),
 		z.now.Day(),
@@ -90,10 +104,11 @@ func (z *zeitpunkt) setBeginn(checkin string) error {
 
 	// If the computed start time is after the current time, set it to the
 	// previous day
-	if z.beginn.After(z.now) {
-		z.beginn = z.beginn.AddDate(0, 0, -1)
+	if beginn.After(z.now) {
+		beginn = beginn.AddDate(0, 0, -1)
 	}
 
+	z.beginn = beginn
 	return nil
 }
 
@@ -106,7 +121,6 @@ func (z *zeitpunkt) Tabelle(checkin string) error {
 
 	var table strings.Builder
 
-	// for i := 0; i < len(zeiten); i++ {
 	for _, zr := range zeitenräume {
 		fmt.Fprintf(&table, nameFormat, zr.name)
 
@@ -125,7 +139,7 @@ func (z *zeitpunkt) Tabelle(checkin string) error {
 }
 
 // Tabelle prints a table of time durations, their end times, and the time
-// remaining until the end time. It writes the table to the given io.Writer.
+// remaining until the end time to an io.Writer
 func Tabelle(checkin string) error {
 	a, err := NewArbeitszeitrechner()
 	if err != nil {
