@@ -13,9 +13,12 @@ func TestNew(t *testing.T) {
 
 	fakeOutput := &bytes.Buffer{}
 
-	az := azr.Zeitpunkt{
-		CurrentTime: time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local),
-		Output:      fakeOutput,
+	az, err := azr.NewArbeitszeitrechner(
+		azr.Now(time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local)),
+		azr.Output(fakeOutput),
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	az.Tabelle("8:12")

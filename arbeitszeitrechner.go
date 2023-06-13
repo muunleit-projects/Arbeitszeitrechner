@@ -1,6 +1,7 @@
 package arbeitszeitrechner
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,34 +28,60 @@ var zeitenräume = []zeitraum{
 	{name: "maximale Arbeitszeit", duration: time.Hour*10 + time.Minute*45},
 }
 
-// Zeitpunkt is a struct that represents a specific moment in time.
-type Zeitpunkt struct {
-	beginn      time.Time
-	CurrentTime time.Time
-	Input       io.Reader
-	Output      io.Writer
+// zeitpunkt is a struct that represents a specific moment in time.
+type zeitpunkt struct {
+	beginn time.Time
+	now    time.Time
+	output io.Writer
 }
 
-func NewArbeitszeitrechner() *Zeitpunkt {
-	return &Zeitpunkt{
-		CurrentTime: time.Now(),
-		Output:      os.Stdout,
+type option func(*zeitpunkt) error
+
+func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
+	z := zeitpunkt{
+		now:    time.Now(),
+		output: os.Stdout,
+	}
+
+	for _, opt := range opts {
+		err := opt(&z)
+		if err != nil {
+			return zeitpunkt{}, err
+		}
+	}
+	return z, nil
+}
+
+func Now(t time.Time) option {
+	return func(z *zeitpunkt) error {
+		z.now = t
+		return nil
+	}
+}
+
+func Output(output io.Writer) option {
+	return func(z *zeitpunkt) error {
+		if output == nil {
+			return errors.New("nil as io writer")
+		}
+		z.output = output
+		return nil
 	}
 }
 
 // setBeginn sets the beginning time. It parses  a string in the format "15:04"
 // and sets the date to the current date. If the beginning time would be in the
 // the future, it reduces the date by one day.
-func (z *Zeitpunkt) setBeginn(checkin string) error {
+func (z *zeitpunkt) setBeginn(checkin string) error {
 	checkinTime, err := time.Parse("15:04", checkin)
 	if err != nil {
 		return err
 	}
 
 	z.beginn = time.Date(
-		z.CurrentTime.Year(),
-		z.CurrentTime.Month(),
-		z.CurrentTime.Day(),
+		z.now.Year(),
+		z.now.Month(),
+		z.now.Day(),
 		checkinTime.Hour(),
 		checkinTime.Minute(),
 		0,
@@ -63,7 +90,7 @@ func (z *Zeitpunkt) setBeginn(checkin string) error {
 
 	// If the computed start time is after the current time, set it to the
 	// previous day
-	if z.beginn.After(z.CurrentTime) {
+	if z.beginn.After(z.now) {
 		z.beginn = z.beginn.AddDate(0, 0, -1)
 	}
 
@@ -72,7 +99,7 @@ func (z *Zeitpunkt) setBeginn(checkin string) error {
 
 // Tabelle prints a table of time durations, their end times, and the time
 // remaining until the end time. It writes the table to the given io.Writer.
-func (z *Zeitpunkt) Tabelle(checkin string) error {
+func (z *zeitpunkt) Tabelle(checkin string) error {
 	if err := z.setBeginn(checkin); err != nil {
 		return err
 	}
@@ -86,19 +113,23 @@ func (z *Zeitpunkt) Tabelle(checkin string) error {
 		end := z.beginn.Add(zr.duration)
 		table.WriteString(end.Format(timeFormat))
 
-		if end.After(z.CurrentTime) {
+		if end.After(z.now) {
 			fmt.Fprintf(&table,
 				remainingTimeFormat,
-				end.Sub(z.CurrentTime).Round(time.Minute))
+				end.Sub(z.now).Round(time.Minute))
 		}
 		table.WriteRune('\n')
 	}
-	fmt.Fprint(z.Output, table.String())
+	fmt.Fprint(z.output, table.String())
 	return nil
 }
 
 // Tabelle prints a table of time durations, their end times, and the time
 // remaining until the end time. It writes the table to the given io.Writer.
 func Tabelle(checkin string) error {
-	return NewArbeitszeitrechner().Tabelle(checkin)
+	a, err := NewArbeitszeitrechner()
+	if err != nil {
+		panic("internal error")
+	}
+	return a.Tabelle(checkin)
 }
