@@ -60,6 +60,7 @@ func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
 			return zeitpunkt{}, err
 		}
 	}
+
 	return z, nil
 }
 
@@ -78,7 +79,9 @@ func Output(output io.Writer) option {
 		if output == nil {
 			return errors.New("nil as io writer")
 		}
+
 		z.output = output
+
 		return nil
 	}
 }
@@ -109,6 +112,7 @@ func (z *zeitpunkt) setBeginn(checkin string) error {
 	}
 
 	z.beginn = beginn
+
 	return nil
 }
 
@@ -132,9 +136,12 @@ func (z *zeitpunkt) Tabelle(checkin string) error {
 				remainingTimeFormat,
 				end.Sub(z.now).Round(time.Minute))
 		}
+
 		table.WriteRune('\n')
 	}
+
 	fmt.Fprint(z.output, table.String())
+
 	return nil
 }
 
@@ -145,5 +152,6 @@ func Tabelle(checkin string) error {
 	if err != nil {
 		panic("internal error")
 	}
+
 	return a.Tabelle(checkin)
 }
