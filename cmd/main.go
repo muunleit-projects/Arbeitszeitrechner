@@ -8,6 +8,7 @@ import (
 
 func main() {
 	var checkin string
+
 	fmt.Print("Eingecheckt um [hh:mm]: ")
 	fmt.Scanln(&checkin)
 
