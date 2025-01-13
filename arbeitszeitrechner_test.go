@@ -2,61 +2,59 @@ package arbeitszeitrechner_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
 	azr "github.com/muunleit-projects/Arbeitszeitrechner"
 )
 
+// TestNew tests the NewArbeitszeitrechner function.
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name  string
-		start string
-		want  string
+	for _, tt := range []struct {
+		explanation string
+		input       string
+		want        string
 	}{
 		{
-			name:  "Standard case",
-			start: "8:12",
+			explanation: "Standard case",
+			input:       "8:12",
 			want: "Beginn                 08:12  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           16:30  Thu 23.07.2020    3h24m0s" + "\n" +
 				"maximale Arbeitszeit   18:57  Thu 23.07.2020    5h51m0s" + "\n",
 		},
 		{
-			name:  "Early start",
-			start: "6:00",
+			explanation: "Early start",
+			input:       "6:00",
 			want: "Beginn                 06:00  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           14:18  Thu 23.07.2020    1h12m0s" + "\n" +
 				"maximale Arbeitszeit   16:45  Thu 23.07.2020    3h39m0s" + "\n",
 		},
 		{
-			name:  "Late start",
-			start: "10:00",
+			explanation: "Late start",
+			input:       "10:00",
 			want: "Beginn                 10:00  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           18:18  Thu 23.07.2020    5h12m0s" + "\n" +
 				"maximale Arbeitszeit   20:45  Thu 23.07.2020    7h39m0s" + "\n",
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	} {
+		t.Run(fmt.Sprintf("%s [%s]", tt.explanation, tt.input), func(t *testing.T) {
 			fakeOutput := &bytes.Buffer{}
-
 			az, err := azr.NewArbeitszeitrechner(
 				azr.Now(time.Date(2020, 7, 23, 13, 6, 0, 0, time.Local)),
 				azr.Output(fakeOutput),
 			)
-			if err != nil {
-				t.Fatal(err)
+
+			if got, want := err, error(nil); got != want {
+				t.Fatalf("err=%v, want=%v", got, want)
 			}
 
-			az.Tabelle(tt.start)
+			az.Tabelle(tt.input)
 
-			got := fakeOutput.String()
-
-			if tt.want != got {
-				t.Errorf("Tabelle: \nwant \n%v got \n%v", tt.want, got)
+			if got, want := fakeOutput.String(), tt.want; got != want {
+				t.Errorf("\ngot=\n%v \nwant=\n%v ", got, want)
 			}
 		})
 	}
