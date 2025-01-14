@@ -14,30 +14,34 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		explanation string
-		input       string
-		want        string
+		explanation    string
+		input          string
+		OutputExpected string
+		errExpected    error
 	}{
 		{
 			explanation: "Standard case",
 			input:       "8:12",
-			want: "Beginn                 08:12  Thu 23.07.2020" + "\n" +
+			OutputExpected: "Beginn                 08:12  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           16:30  Thu 23.07.2020    3h24m0s" + "\n" +
 				"maximale Arbeitszeit   18:57  Thu 23.07.2020    5h51m0s" + "\n",
+			errExpected: nil,
 		},
 		{
 			explanation: "Early start",
 			input:       "6:00",
-			want: "Beginn                 06:00  Thu 23.07.2020" + "\n" +
+			OutputExpected: "Beginn                 06:00  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           14:18  Thu 23.07.2020    1h12m0s" + "\n" +
 				"maximale Arbeitszeit   16:45  Thu 23.07.2020    3h39m0s" + "\n",
+			errExpected: nil,
 		},
 		{
 			explanation: "Late start",
 			input:       "10:00",
-			want: "Beginn                 10:00  Thu 23.07.2020" + "\n" +
+			OutputExpected: "Beginn                 10:00  Thu 23.07.2020" + "\n" +
 				"Standard-Tag           18:18  Thu 23.07.2020    5h12m0s" + "\n" +
 				"maximale Arbeitszeit   20:45  Thu 23.07.2020    7h39m0s" + "\n",
+			errExpected: nil,
 		},
 	} {
 		t.Run(fmt.Sprintf("%s [%s]", tt.explanation, tt.input), func(t *testing.T) {
@@ -47,13 +51,13 @@ func TestNew(t *testing.T) {
 				azr.Output(fakeOutput),
 			)
 
-			if got, want := err, error(nil); got != want {
+			if got, want := err, tt.errExpected; got != want {
 				t.Fatalf("err=%v, want=%v", got, want)
 			}
 
 			az.Tabelle(tt.input)
 
-			if got, want := fakeOutput.String(), tt.want; got != want {
+			if got, want := fakeOutput.String(), tt.OutputExpected; got != want {
 				t.Errorf("\ngot=\n%v \nwant=\n%v ", got, want)
 			}
 		})
