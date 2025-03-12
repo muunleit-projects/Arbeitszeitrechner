@@ -43,6 +43,14 @@ func TestNew(t *testing.T) {
 				"maximale Arbeitszeit   20:45  Thu 23.07.2020    7h39m0s" + "\n",
 			errExpected: nil,
 		},
+		{
+			explanation: "Night start",
+			input:       "22:12",
+			OutputExpected: "Beginn                 22:12  Wed 22.07.2020" + "\n" +
+				"Standard-Tag           06:30  Thu 23.07.2020" + "\n" +
+				"maximale Arbeitszeit   08:57  Thu 23.07.2020" + "\n",
+			errExpected: nil,
+		},
 	} {
 		t.Run(fmt.Sprintf("%s [%s]", tt.explanation, tt.input), func(t *testing.T) {
 			fakeOutput := &bytes.Buffer{}
@@ -58,7 +66,7 @@ func TestNew(t *testing.T) {
 			az.Tabelle(tt.input)
 
 			if got, want := fakeOutput.String(), tt.OutputExpected; got != want {
-				t.Errorf("\ngot=\n%v \nwant=\n%v ", got, want)
+				t.Errorf("\ngot=\n%q \nwant=\n%q ", got, want)
 			}
 		})
 	}

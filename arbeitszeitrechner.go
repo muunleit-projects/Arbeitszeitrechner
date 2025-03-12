@@ -9,13 +9,6 @@ import (
 	"time"
 )
 
-// string formats for outputting Zeitpunkt objects
-const (
-	nameFormat          = "%-23s"
-	timeFormat          = "15:04  Mon 02.01.2006"
-	remainingTimeFormat = "%11s"
-)
-
 // zeitraum represents a period of time with a name and duration.
 type zeitraum struct {
 	name     string
@@ -119,6 +112,13 @@ func (z *zeitpunkt) setBeginn(checkin string) error {
 // Tabelle prints a table of time durations, their end times, and the time
 // remaining until the end time. It writes the table to the given io.Writer.
 func (z *zeitpunkt) Tabelle(checkin string) error {
+	// string formats for outputting Zeitpunkt objects
+	const (
+		nameFormat          = "%-23s"
+		timeFormat          = "15:04  Mon 02.01.2006"
+		remainingTimeFormat = "%11s"
+	)
+
 	if err := z.setBeginn(checkin); err != nil {
 		return err
 	}
