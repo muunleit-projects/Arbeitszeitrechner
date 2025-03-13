@@ -6,6 +6,8 @@ import (
 	azr "github.com/muunleit-projects/Arbeitszeitrechner"
 )
 
+// TODO: switch to bubbletea
+
 func main() {
 	var checkin string
 
@@ -16,4 +18,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	fmt.Println("Bis zum nächsten Mal! (Drücken Sie Enter zum Beenden)")
+	fmt.Scanln()
 }
