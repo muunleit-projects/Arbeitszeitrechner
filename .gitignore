@@ -20,3 +20,4 @@
 *.json  
 *.bak
 bin/
+.DS_Store
