@@ -15,7 +15,7 @@ type zeitraum struct {
 	duration time.Duration
 }
 
-var zeitenräume = []zeitraum{
+var zeitenraeume = []zeitraum{
 	{
 		name:     "Beginn",
 		duration: 0,
@@ -30,19 +30,19 @@ var zeitenräume = []zeitraum{
 	},
 }
 
-// zeitpunkt is a struct that represents a specific moment in time.
-type zeitpunkt struct {
+// Zeitpunkt is a struct that represents a specific moment in time.
+type Zeitpunkt struct {
 	beginn time.Time
 	now    time.Time
 	output io.Writer
 }
 
-type option func(*zeitpunkt) error
+type option func(*Zeitpunkt) error
 
 // NewArbeitszeitrechner builds a new Arbeitszeitrechner-object with given
-// options or setting it to standard-value if the options are omitted
-func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
-	z := zeitpunkt{
+// options or setting it to standard-value if the options are omitted.
+func NewArbeitszeitrechner(opts ...option) (Zeitpunkt, error) {
+	z := Zeitpunkt{
 		now:    time.Now(),
 		output: os.Stdout,
 	}
@@ -50,7 +50,7 @@ func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
 	for _, opt := range opts {
 		err := opt(&z)
 		if err != nil {
-			return zeitpunkt{}, err
+			return Zeitpunkt{}, err
 		}
 	}
 
@@ -58,17 +58,18 @@ func NewArbeitszeitrechner(opts ...option) (zeitpunkt, error) {
 }
 
 // Now sets the current time of a new Arbeitszeitrechner-object to the given
-// time
+// time.
 func Now(t time.Time) option {
-	return func(z *zeitpunkt) error {
+	return func(z *Zeitpunkt) error {
 		z.now = t
+
 		return nil
 	}
 }
 
-// Output sets the output of a new Arbeitszeitrechner-object to the given output
+// Output sets the output of a new Arbeitszeitrechner-object to the given output.
 func Output(output io.Writer) option {
-	return func(z *zeitpunkt) error {
+	return func(z *Zeitpunkt) error {
 		if output == nil {
 			return errors.New("nil as io writer")
 		}
@@ -79,10 +80,67 @@ func Output(output io.Writer) option {
 	}
 }
 
+// TabelleString generates the table string without writing it to an output.
+func (z *Zeitpunkt) TabelleString(checkin string) (string, error) {
+	// string formats for outputting Zeitpunkt objects
+	const (
+		nameFormat          = "%-23s"
+		timeFormat          = "15:04  Mon 02.01.2006"
+		remainingTimeFormat = "%11s"
+	)
+
+	if err := z.setBeginn(checkin); err != nil {
+		return "", err
+	}
+
+	var table strings.Builder
+
+	for _, zr := range zeitenraeume {
+		fmt.Fprintf(&table, nameFormat, zr.name)
+
+		end := z.beginn.Add(zr.duration)
+		table.WriteString(end.Format(timeFormat))
+
+		if end.After(z.now) {
+			fmt.Fprintf(&table,
+				remainingTimeFormat,
+				end.Sub(z.now).Round(time.Minute))
+		}
+
+		table.WriteRune('\n')
+	}
+
+	return table.String(), nil
+}
+
+// Tabelle prints a table of time durations, their end times, and the time
+// remaining until the end time. It writes the table to the given io.Writer.
+func (z *Zeitpunkt) Tabelle(checkin string) error {
+	s, err := z.TabelleString(checkin)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprint(z.output, s)
+
+	return nil
+}
+
+// Tabelle prints a table of time durations, their end times, and the time
+// remaining until the end time to an io.Writer.
+func Tabelle(checkin string) error {
+	a, err := NewArbeitszeitrechner()
+	if err != nil {
+		panic("internal error")
+	}
+
+	return a.Tabelle(checkin)
+}
+
 // setBeginn sets the beginning time. It parses a string in the format "15:04"
 // and sets the date to the current date. If the beginning time would be in the
-// the future, it reduces the date by one day.
-func (z *zeitpunkt) setBeginn(checkin string) error {
+// future, it reduces the date by one day.
+func (z *Zeitpunkt) setBeginn(checkin string) error {
 	checkinTime, err := time.Parse("15:04", checkin)
 	if err != nil {
 		return err
@@ -107,51 +165,4 @@ func (z *zeitpunkt) setBeginn(checkin string) error {
 	z.beginn = beginn
 
 	return nil
-}
-
-// Tabelle prints a table of time durations, their end times, and the time
-// remaining until the end time. It writes the table to the given io.Writer.
-func (z *zeitpunkt) Tabelle(checkin string) error {
-	// string formats for outputting Zeitpunkt objects
-	const (
-		nameFormat          = "%-23s"
-		timeFormat          = "15:04  Mon 02.01.2006"
-		remainingTimeFormat = "%11s"
-	)
-
-	if err := z.setBeginn(checkin); err != nil {
-		return err
-	}
-
-	var table strings.Builder
-
-	for _, zr := range zeitenräume {
-		fmt.Fprintf(&table, nameFormat, zr.name)
-
-		end := z.beginn.Add(zr.duration)
-		table.WriteString(end.Format(timeFormat))
-
-		if end.After(z.now) {
-			fmt.Fprintf(&table,
-				remainingTimeFormat,
-				end.Sub(z.now).Round(time.Minute))
-		}
-
-		table.WriteRune('\n')
-	}
-
-	fmt.Fprint(z.output, table.String())
-
-	return nil
-}
-
-// Tabelle prints a table of time durations, their end times, and the time
-// remaining until the end time to an io.Writer
-func Tabelle(checkin string) error {
-	a, err := NewArbeitszeitrechner()
-	if err != nil {
-		panic("internal error")
-	}
-
-	return a.Tabelle(checkin)
 }
