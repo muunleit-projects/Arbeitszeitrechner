@@ -5,28 +5,71 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	azr "github.com/muunleit-projects/Arbeitszeitrechner"
 )
 
-// Styles.
+// Styles — refined color palette for a premium TUI feel.
 var (
+	// Accent colors
+	purple    = lipgloss.Color("#7C3AED")
+	violet    = lipgloss.Color("#8B5CF6")
+	indigo    = lipgloss.Color("#6366F1")
+	slate     = lipgloss.Color("#94A3B8")
+	dimSlate  = lipgloss.Color("#64748B")
+	surface   = lipgloss.Color("#1E1B4B")
+	red       = lipgloss.Color("#F87171")
+	green     = lipgloss.Color("#34D399")
+	white     = lipgloss.Color("#F8FAFC")
+	dimWhite  = lipgloss.Color("#CBD5E1")
+
+	// Title bar with gradient-like effect
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
-			Padding(0, 1)
+			Foreground(white).
+			Background(purple).
+			Padding(0, 2).
+			MarginBottom(1)
 
+	subtitleStyle = lipgloss.NewStyle().
+			Foreground(violet).
+			Italic(true)
+
+	// Error display
 	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF5555")).
+			Foreground(red).
+			Bold(true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(red)
+
+	// Table output
+	tableStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(indigo).
+			Padding(1, 2)
+
+	// Help / hint text
+	helpStyle = lipgloss.NewStyle().
+			Foreground(dimSlate).
+			Italic(true).
+			MarginTop(1)
+
+	// Prompt label
+	promptStyle = lipgloss.NewStyle().
+			Foreground(slate).
 			Bold(true)
 
-	tableStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("240")).
-			Padding(0, 1)
+	// Status / success
+	successStyle = lipgloss.NewStyle().
+			Foreground(green).
+			Bold(true)
+
+	// Outer container
+	containerStyle = lipgloss.NewStyle().
+			Padding(1, 2)
 )
 
 type state int
@@ -41,7 +84,7 @@ type model struct {
 	textInput   textinput.Model
 	tableString string
 	err         error
-	azr         azr.Zeitpunkt // Use the interface/struct from the package if needed, or just helpers
+	azr         azr.Zeitpunkt
 }
 
 func initialModel() model {
@@ -49,12 +92,15 @@ func initialModel() model {
 	ti.Placeholder = "hh:mm"
 	ti.Focus()
 	ti.CharLimit = 5
-	ti.Width = 10
+	ti.SetWidth(10)
 
-	// Initialize the azr object
-	// We can ignore the error here for now as NewArbeitszeitrechner only errors on bad options
-	// and we are not passing any options that would fail (defaults).
-	// In a real app we might handle this better.
+	// Customize text input styles for a polished look
+	styles := ti.Styles()
+	styles.Focused.Prompt = lipgloss.NewStyle().Foreground(violet).Bold(true)
+	styles.Focused.Text = lipgloss.NewStyle().Foreground(white)
+	styles.Focused.Placeholder = lipgloss.NewStyle().Foreground(dimSlate)
+	ti.SetStyles(styles)
+
 	z, _ := azr.NewArbeitszeitrechner()
 
 	return model{
@@ -72,22 +118,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
 			return m, tea.Quit
 		}
 
 		switch m.state {
 		case stateInput:
-			switch msg.Type {
-			case tea.KeyEnter:
+			if msg.String() == "enter" {
 				checkin := m.textInput.Value()
-				// Validate/Calculate
 				s, err := m.azr.TabelleString(checkin)
 				if err != nil {
 					m.err = err
-
 					return m, nil
 				}
 
@@ -119,36 +162,47 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	var s strings.Builder
 
+	// Title
+	s.WriteString(titleStyle.Render("⏱  Arbeitszeitrechner"))
 	s.WriteString("\n")
-	s.WriteString(titleStyle.Render("Arbeitszeitrechner"))
-	s.WriteString("\n\n")
 
 	switch m.state {
 	case stateInput:
-		s.WriteString("Wann hast du eingecheckt?\n\n")
-		s.WriteString(m.textInput.View())
+		s.WriteString(subtitleStyle.Render("Arbeitszeit berechnen"))
 		s.WriteString("\n\n")
+		s.WriteString(promptStyle.Render("Wann hast du eingecheckt?"))
+		s.WriteString("\n\n")
+		s.WriteString("  " + m.textInput.View())
+		s.WriteString("\n")
 
 		if m.err != nil {
-			s.WriteString(errorStyle.Render(fmt.Sprintf("Fehler: %v", m.err)))
+			s.WriteString("\n")
+			s.WriteString(errorStyle.Render(fmt.Sprintf("✗ Fehler: %v", m.err)))
 			s.WriteString("\n")
 		}
 
-		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-		s.WriteString(helpStyle.Render("(Format: hh:mm, Enter zum Bestätigen, Esc zum Beenden)"))
+		s.WriteString("\n")
+		s.WriteString(helpStyle.Render("  Format: hh:mm  •  Enter bestätigen  •  Esc beenden"))
 
 	case stateDisplay:
+		s.WriteString(subtitleStyle.Render("Deine Arbeitszeiten"))
+		s.WriteString("\n\n")
 		s.WriteString(tableStyle.Render(m.tableString))
 		s.WriteString("\n\n")
-		s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("(q zum Beenden, r zum Neustart)"))
+		s.WriteString(helpStyle.Render(
+			"  " + successStyle.Render("r") + " Neustart  •  " +
+				successStyle.Render("q") + " Beenden",
+		))
 	}
 
 	s.WriteString("\n")
 
-	return s.String()
+	content := containerStyle.Render(s.String())
+
+	return tea.NewView(content)
 }
 
 func main() {
